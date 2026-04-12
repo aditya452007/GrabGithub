@@ -1,0 +1,16 @@
+# Grab GitHub
+
+Grab GitHub is a web application that allows users to download specific files and folders from any GitHub repository without needing to clone the entire repository or use the command line.
+
+## Features
+- Paste any GitHub repository, folder, or file URL.
+- Browse the repository structure in a clean UI.
+- Select specific files or folders to download.
+- Download the selected items instantly as a ZIP file.
+
+## Use Case
+Ideal for developers who need specific scripts, templates, or components from a larger repository but don't want to clone the whole thing.
+
+## Author
+Made by developer, made for developer.
+Created by Aaditya Thakur (https://github.com/aditya452007).

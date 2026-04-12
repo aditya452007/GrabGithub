@@ -1,0 +1,5 @@
+{
+  "name": "Grab GitHub",
+  "description": "A polished GitHub URL browser and selective downloader. Paste a GitHub URL, browse the tree, select exactly what you need, and download it as a ZIP.",
+  "requestFramePermissions": []
+}
