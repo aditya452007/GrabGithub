@@ -46,6 +46,9 @@ export default function App() {
     e.preventDefault();
     const trimmedUrl = inputUrl.trim();
     if (trimmedUrl) {
+      // Clear previous errors
+      setError(null);
+      
       // Basic client-side validation
       const isGitHubUrl = trimmedUrl.includes('github.com');
       const isShorthand = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(trimmedUrl);
@@ -53,6 +56,20 @@ export default function App() {
       if (!isGitHubUrl && !isShorthand) {
         setError("Please enter a valid GitHub URL (e.g., https://github.com/owner/repo) or shorthand (owner/repo).");
         return;
+      }
+      
+      // Check if it's just github.com without a repo
+      if (isGitHubUrl) {
+        try {
+          const urlObj = new URL(trimmedUrl.startsWith('http') ? trimmedUrl : `https://${trimmedUrl}`);
+          const parts = urlObj.pathname.split('/').filter(Boolean);
+          if (parts.length < 2) {
+            setError("Please include both the repository owner and name (e.g., https://github.com/owner/repo).");
+            return;
+          }
+        } catch (e) {
+          // Ignore URL parsing errors here, let the server handle it
+        }
       }
       
       setUrl(trimmedUrl);

@@ -10,7 +10,8 @@ app.use(express.json());
 
 // Simple in-memory cache for trees
 const treeCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 15 * 60 * 1000; // Increased to 15 minutes
+const MAX_CACHE_SIZE = 50; // Limit memory usage
 
 // Helper to fetch JSON from GitHub API
 async function fetchGitHubAPI(endpoint: string) {
@@ -73,13 +74,19 @@ app.get('/api/repo-info', async (req, res) => {
     }
 
     const owner = parts[0];
-    const repo = parts[1];
+    let repo = parts[1];
+    
+    // Strip .git suffix if present
+    if (repo.endsWith('.git')) {
+      repo = repo.slice(0, -4);
+    }
+    
     let branch = '';
     let subpath = '';
 
     if (parts.length >= 4 && (parts[2] === 'tree' || parts[2] === 'blob')) {
-      branch = parts[3];
-      subpath = parts.slice(4).join('/');
+      branch = decodeURIComponent(parts[3]);
+      subpath = parts.slice(4).map(decodeURIComponent).join('/');
     } else {
       // Fetch default branch
       const repoData = await fetchGitHubAPI(`/repos/${owner}/${repo}`);
@@ -117,6 +124,21 @@ app.get('/api/tree', async (req, res) => {
     // but we want to show folders in the UI, so we keep everything.
     // The GitHub API returns { path, mode, type, sha, size, url }
     
+    if (treeCache.size >= MAX_CACHE_SIZE) {
+      // Remove oldest entry
+      let oldestKey = '';
+      let oldestTime = Infinity;
+      for (const [key, value] of treeCache.entries()) {
+        if (value.timestamp < oldestTime) {
+          oldestTime = value.timestamp;
+          oldestKey = key;
+        }
+      }
+      if (oldestKey) {
+        treeCache.delete(oldestKey);
+      }
+    }
+
     treeCache.set(cacheKey, { data: treeData, timestamp: Date.now() });
     res.json(treeData);
   } catch (error: any) {

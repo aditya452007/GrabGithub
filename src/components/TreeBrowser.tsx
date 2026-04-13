@@ -45,8 +45,11 @@ const TreeNodeItem: React.FC<{ node: TreeNode }> = ({ node }) => {
   // If searching, auto-expand folders that contain matches
   const shouldExpand = isExpanded || (searchQuery && node.type === 'tree');
 
+  // Create a safe ID for scrolling
+  const safeId = `node-${btoa(encodeURIComponent(node.path)).replace(/=/g, '')}`;
+
   return (
-    <div className="select-none">
+    <div className="select-none" id={safeId} data-path={node.path}>
       <div 
         className={cn(
           "flex items-center py-1.5 px-2 hover:bg-white/5 rounded-md cursor-pointer group transition-colors",
@@ -115,7 +118,30 @@ const TreeNodeItem: React.FC<{ node: TreeNode }> = ({ node }) => {
 };
 
 export const TreeBrowser: React.FC = () => {
-  const { rootNodes, nodesMap, isLoadingTree, error } = useStore();
+  const { rootNodes, nodesMap, isLoadingTree, error, repoInfo } = useStore();
+
+  React.useEffect(() => {
+    if (!isLoadingTree && repoInfo?.path) {
+      // Small delay to ensure rendering is complete
+      setTimeout(() => {
+        const safeId = `node-${btoa(encodeURIComponent(repoInfo.path)).replace(/=/g, '')}`;
+        const element = document.getElementById(safeId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Optional: Add a brief highlight effect to the selected item
+          const innerDiv = element.firstElementChild as HTMLElement;
+          if (innerDiv) {
+            const originalBg = innerDiv.style.backgroundColor;
+            innerDiv.style.backgroundColor = 'rgba(196, 139, 255, 0.3)'; // Highlight color
+            setTimeout(() => {
+              innerDiv.style.backgroundColor = originalBg;
+            }, 1500);
+          }
+        }
+      }, 100);
+    }
+  }, [isLoadingTree, repoInfo?.path]);
 
   if (isLoadingTree) {
     return (
