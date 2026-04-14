@@ -1,38 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStore } from '../store';
-import { Download, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Download, Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { showToast } from './Toast';
 
 export const DownloadPanel: React.FC = () => {
   const { selectedPaths, nodesMap, repoInfo } = useStore();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'downloading' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
 
-  // Calculate only the files that need to be downloaded
-  // If a folder is selected, we need to include all its descendant files
-  const getFilesToDownload = () => {
+  // Calculate files to download and total size estimate
+  const { filesToDownload, totalSize } = useMemo(() => {
     const files = new Set<string>();
+    let size = 0;
     
     const addDescendantFiles = (path: string) => {
       const node = nodesMap[path];
       if (!node) return;
       if (node.type === 'blob') {
         files.add(path);
+        if (node.size) size += node.size;
       } else {
         node.children.forEach(addDescendantFiles);
       }
     };
 
     selectedPaths.forEach(path => addDescendantFiles(path));
-    return Array.from(files);
-  };
+    return { filesToDownload: Array.from(files), totalSize: size };
+  }, [selectedPaths, nodesMap]);
 
-  const filesToDownload = getFilesToDownload();
   const fileCount = filesToDownload.length;
+
+  const formatSize = (bytes: number): string => {
+    if (bytes === 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
 
   const handleDownload = async () => {
     if (fileCount === 0 || !repoInfo) return;
+
+    // Warn if download is very large
+    if (totalSize > 100 * 1024 * 1024) { // > 100MB
+      showToast({
+        type: 'warning',
+        title: 'Large download',
+        message: `This download is approximately ${formatSize(totalSize)}. It may take a while.`,
+        duration: 5000,
+      });
+    }
     
     setIsDownloading(true);
     setDownloadStatus('downloading');
@@ -40,9 +57,7 @@ export const DownloadPanel: React.FC = () => {
     try {
       const response = await fetch('/api/download', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           owner: repoInfo.owner,
           repo: repoInfo.repo,
@@ -56,7 +71,6 @@ export const DownloadPanel: React.FC = () => {
         throw new Error(errorData.error || 'Download failed');
       }
 
-      // Handle streaming response as a blob download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -68,12 +82,21 @@ export const DownloadPanel: React.FC = () => {
       document.body.removeChild(a);
       
       setDownloadStatus('success');
-      setTimeout(() => setDownloadStatus('idle'), 3000);
+      showToast({
+        type: 'success',
+        title: 'Download complete!',
+        message: `${fileCount} file${fileCount === 1 ? '' : 's'} downloaded as ${repoInfo.repo}-grab.zip`,
+      });
+      setTimeout(() => setDownloadStatus('idle'), 2500);
     } catch (err: any) {
-      console.error('Download error:', err);
       setDownloadStatus('error');
-      setErrorMessage(err.message || 'An error occurred during download');
-      setTimeout(() => setDownloadStatus('idle'), 5000);
+      showToast({
+        type: 'error',
+        title: 'Download failed',
+        message: err.message || 'An error occurred during download. Please try again.',
+        duration: 6000,
+      });
+      setTimeout(() => setDownloadStatus('idle'), 3000);
     } finally {
       setIsDownloading(false);
     }
@@ -81,45 +104,126 @@ export const DownloadPanel: React.FC = () => {
 
   if (fileCount === 0) return null;
 
+  const sizeStr = totalSize > 0 ? ` (~${formatSize(totalSize)})` : '';
+
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-50">
-      <div className="bg-[#423657] border border-black/30 rounded-2xl p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
-        <div className="flex flex-col">
-          <span className="text-white font-bold">
+    <div style={{
+      position: 'fixed',
+      bottom: '80px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: '100%',
+      maxWidth: '460px',
+      padding: '0 16px',
+      zIndex: 50,
+      animation: 'slide-up 0.4s var(--ease-bounce)',
+    }}>
+      <div style={{
+        background: 'var(--bg-surface)',
+        borderRadius: '20px',
+        padding: '16px 20px',
+        boxShadow: 'var(--neo-raised), 0 8px 32px rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '16px',
+        backdropFilter: 'blur(12px)',
+      }}>
+        {/* Info */}
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <span style={{
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 800,
+            fontSize: '15px',
+            color: 'var(--text-primary)',
+          }}>
             {fileCount} {fileCount === 1 ? 'file' : 'files'} selected
           </span>
-          <span className="text-xs text-zinc-300 font-medium">
-            Ready to download as ZIP
+          <span style={{
+            fontSize: '12px',
+            color: 'var(--text-muted)',
+            fontFamily: 'var(--font-body)',
+          }}>
+            Ready to download as ZIP{sizeStr}
           </span>
         </div>
         
+        {/* Download button */}
         <button
           onClick={handleDownload}
           disabled={isDownloading}
-          className={cn(
-            "flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]",
-            downloadStatus === 'idle' ? "bg-[#C48BFF] hover:bg-[#D4A8FF] text-[#2B253C]" :
-            downloadStatus === 'downloading' ? "bg-[#2B253C] text-[#C48BFF] cursor-not-allowed shadow-none translate-y-[2px]" :
-            downloadStatus === 'success' ? "bg-[#C48BFF]/20 text-[#D4A8FF] shadow-none translate-y-[2px]" :
-            "bg-red-500/20 text-red-400 shadow-none translate-y-[2px]"
-          )}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 24px',
+            borderRadius: '14px',
+            border: 'none',
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 800,
+            fontSize: '14px',
+            cursor: isDownloading ? 'not-allowed' : 'pointer',
+            transition: 'all 0.3s ease',
+            flexShrink: 0,
+            ...(downloadStatus === 'idle' ? {
+              background: 'var(--accent-primary)',
+              color: 'white',
+              boxShadow: 'var(--neo-raised-sm)',
+            } : downloadStatus === 'downloading' ? {
+              background: 'var(--bg-base)',
+              color: 'var(--accent-secondary)',
+              boxShadow: 'var(--neo-inset-sm)',
+            } : downloadStatus === 'success' ? {
+              background: 'rgba(34, 197, 94, 0.15)',
+              color: '#22c55e',
+              boxShadow: 'none',
+            } : {
+              background: 'rgba(239, 68, 68, 0.15)',
+              color: '#ef4444',
+              boxShadow: 'none',
+            }),
+          }}
+          onMouseEnter={(e) => {
+            if (downloadStatus === 'idle') {
+              e.currentTarget.style.boxShadow = 'var(--neo-raised), 0 0 16px var(--accent-glow)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (downloadStatus === 'idle') {
+              e.currentTarget.style.boxShadow = 'var(--neo-raised-sm)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }
+          }}
+          onMouseDown={(e) => {
+            if (downloadStatus === 'idle') {
+              e.currentTarget.style.boxShadow = 'var(--neo-inset-sm)';
+              e.currentTarget.style.transform = 'translateY(1px)';
+            }
+          }}
+          onMouseUp={(e) => {
+            if (downloadStatus === 'idle') {
+              e.currentTarget.style.boxShadow = 'var(--neo-raised-sm)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }
+          }}
         >
           {downloadStatus === 'idle' && (
             <>
-              <Download size={18} strokeWidth={3} />
+              <Download size={18} strokeWidth={2.5} />
               <span>Download</span>
             </>
           )}
           {downloadStatus === 'downloading' && (
             <>
-              <Loader2 size={18} className="animate-spin" />
-              <span>Zipping...</span>
+              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+              <span>Zipping…</span>
             </>
           )}
           {downloadStatus === 'success' && (
             <>
               <CheckCircle size={18} />
-              <span>Done!</span>
+              <span>Done ✓</span>
             </>
           )}
           {downloadStatus === 'error' && (
@@ -130,11 +234,6 @@ export const DownloadPanel: React.FC = () => {
           )}
         </button>
       </div>
-      {downloadStatus === 'error' && (
-        <div className="mt-2 text-center text-xs text-red-400 bg-[#2B253C] rounded-lg py-1 px-3 border border-red-500/20 font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          {errorMessage}
-        </div>
-      )}
     </div>
   );
 };

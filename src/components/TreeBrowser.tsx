@@ -1,9 +1,35 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useStore, TreeNode } from '../store';
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { ChevronRight, FolderOpen, Folder, FileText, FileCode, FileJson, Image, FileArchive, File, Settings, Terminal, BookOpen } from 'lucide-react';
+import { SkeletonTree } from './SkeletonTree';
 
-const TreeNodeItem: React.FC<{ node: TreeNode }> = ({ node }) => {
+// File extension to icon mapping
+function getFileIcon(name: string) {
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  const iconProps = { size: 16, style: { flexShrink: 0 } };
+  
+  const codeExts = ['js', 'jsx', 'ts', 'tsx', 'py', 'rb', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'cs', 'php', 'swift', 'kt', 'scala', 'vue', 'svelte'];
+  const configExts = ['yml', 'yaml', 'toml', 'ini', 'cfg', 'conf'];
+  const docExts = ['md', 'mdx', 'txt', 'rst', 'doc', 'docx', 'pdf'];
+  const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp'];
+  const archiveExts = ['zip', 'tar', 'gz', 'rar', '7z', 'bz2'];
+  
+  if (ext === 'json' || ext === 'jsonc') return <FileJson {...iconProps} style={{ ...iconProps.style, color: '#fbbf24' }} />;
+  if (codeExts.includes(ext)) return <FileCode {...iconProps} style={{ ...iconProps.style, color: '#60a5fa' }} />;
+  if (configExts.includes(ext)) return <Settings {...iconProps} style={{ ...iconProps.style, color: '#a78bfa' }} />;
+  if (docExts.includes(ext)) return <BookOpen {...iconProps} style={{ ...iconProps.style, color: '#34d399' }} />;
+  if (imageExts.includes(ext)) return <Image {...iconProps} style={{ ...iconProps.style, color: '#f472b6' }} />;
+  if (archiveExts.includes(ext)) return <FileArchive {...iconProps} style={{ ...iconProps.style, color: '#fb923c' }} />;
+  if (ext === 'sh' || ext === 'bash' || ext === 'zsh' || ext === 'fish') return <Terminal {...iconProps} style={{ ...iconProps.style, color: '#4ade80' }} />;
+  if (name === 'Dockerfile' || name === 'Makefile' || name === 'Procfile') return <Terminal {...iconProps} style={{ ...iconProps.style, color: '#38bdf8' }} />;
+  if (ext === 'css' || ext === 'scss' || ext === 'sass' || ext === 'less') return <FileCode {...iconProps} style={{ ...iconProps.style, color: '#c084fc' }} />;
+  if (ext === 'html' || ext === 'htm') return <FileCode {...iconProps} style={{ ...iconProps.style, color: '#f87171' }} />;
+  if (name === 'LICENSE' || name === 'CHANGELOG' || name === 'README') return <BookOpen {...iconProps} style={{ ...iconProps.style, color: '#34d399' }} />;
+  
+  return <FileText {...iconProps} style={{ ...iconProps.style, color: 'var(--text-muted)' }} />;
+}
+
+const TreeNodeItem: React.FC<{ node: TreeNode; index: number }> = ({ node, index }) => {
   const { 
     nodesMap, 
     expandedPaths, 
@@ -18,7 +44,6 @@ const TreeNodeItem: React.FC<{ node: TreeNode }> = ({ node }) => {
   const isSelected = selectedPaths.has(node.path);
   const isPartiallySelected = partiallySelectedPaths.has(node.path);
   
-  // Filter logic: if search query exists, only show nodes that match or have descendants that match
   const matchesSearch = useMemo(() => {
     if (!searchQuery) return true;
     
@@ -26,10 +51,10 @@ const TreeNodeItem: React.FC<{ node: TreeNode }> = ({ node }) => {
     if (node.name.toLowerCase().includes(query)) return true;
     
     if (node.type === 'tree') {
-      // Check if any descendant matches
       const checkDescendants = (n: TreeNode): boolean => {
         for (const childPath of n.children) {
           const childNode = nodesMap[childPath];
+          if (!childNode) continue;
           if (childNode.name.toLowerCase().includes(query)) return true;
           if (childNode.type === 'tree' && checkDescendants(childNode)) return true;
         }
@@ -40,76 +65,196 @@ const TreeNodeItem: React.FC<{ node: TreeNode }> = ({ node }) => {
     return false;
   }, [node, searchQuery, nodesMap]);
 
-  if (!matchesSearch) return null;
-
-  // If searching, auto-expand folders that contain matches
   const shouldExpand = isExpanded || (searchQuery && node.type === 'tree');
-
-  // Create a safe ID for scrolling
   const safeId = `node-${btoa(encodeURIComponent(node.path)).replace(/=/g, '')}`;
 
+  const handleRowClick = useCallback(() => {
+    if (node.type === 'tree') {
+      toggleExpand(node.path);
+    } else {
+      toggleSelection(node.path);
+    }
+  }, [node.path, node.type, toggleExpand, toggleSelection]);
+
+  const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleSelection(node.path);
+  }, [node.path, toggleSelection]);
+
+  const handleChevronClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (node.type === 'tree') toggleExpand(node.path);
+  }, [node.path, node.type, toggleExpand]);
+
+  // Handle keyboard
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (e.key === 'Enter' && node.type === 'tree') {
+        toggleExpand(node.path);
+      } else {
+        toggleSelection(node.path);
+      }
+    }
+  }, [node.path, node.type, toggleExpand, toggleSelection]);
+
+  if (!matchesSearch) return null;
+
   return (
-    <div className="select-none" id={safeId} data-path={node.path}>
+    <div id={safeId} data-path={node.path} role="treeitem" aria-expanded={node.type === 'tree' ? shouldExpand : undefined}>
       <div 
-        className={cn(
-          "flex items-center py-1.5 px-2 hover:bg-white/5 rounded-md cursor-pointer group transition-colors",
-          isSelected && "bg-[#C48BFF]/10 hover:bg-[#C48BFF]/20"
-        )}
-        style={{ paddingLeft: `${node.depth * 1.2 + 0.5}rem` }}
-        onClick={() => node.type === 'tree' ? toggleExpand(node.path) : toggleSelection(node.path)}
+        onClick={handleRowClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: `8px 12px 8px ${node.depth * 20 + 12}px`,
+          cursor: 'pointer',
+          borderRadius: '12px',
+          margin: '2px 0',
+          transition: 'all 0.2s ease',
+          background: isSelected 
+            ? 'rgba(168, 85, 247, 0.1)' 
+            : index % 2 === 0 ? 'transparent' : 'rgba(15, 23, 42, 0.015)',
+          borderLeft: isSelected ? '3px solid var(--accent-secondary)' : '3px solid transparent',
+          outline: 'none',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = isSelected 
+            ? 'rgba(168, 85, 247, 0.15)' 
+            : 'rgba(15, 23, 42, 0.04)';
+          e.currentTarget.style.transform = 'translateX(2px)';
+          e.currentTarget.style.boxShadow = 'var(--neo-flat)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = isSelected 
+            ? 'rgba(168, 85, 247, 0.1)' 
+            : index % 2 === 0 ? 'transparent' : 'rgba(15, 23, 42, 0.015)';
+          e.currentTarget.style.transform = 'translateX(0)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent-secondary)';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.boxShadow = 'none';
+        }}
       >
-        {/* Expand/Collapse Icon */}
+        {/* Expand/Collapse chevron */}
         <div 
-          className={cn("w-5 h-5 flex items-center justify-center text-zinc-500", node.type === 'blob' && "invisible")}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (node.type === 'tree') toggleExpand(node.path);
+          onClick={handleChevronClick}
+          style={{
+            width: '20px',
+            height: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            color: 'var(--text-muted)',
+            visibility: node.type === 'blob' ? 'hidden' : 'visible',
+            transition: 'transform 0.2s ease',
+            transform: shouldExpand ? 'rotate(90deg)' : 'rotate(0deg)',
           }}
         >
-          {shouldExpand ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          <ChevronRight size={14} />
         </div>
 
-        {/* Checkbox */}
+        {/* Custom neumorphic checkbox */}
         <div 
-          className="mx-2 flex items-center justify-center"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleSelection(node.path);
+          onClick={handleCheckboxClick}
+          style={{
+            margin: '0 8px',
+            flexShrink: 0,
           }}
         >
-          <div className={cn(
-            "w-4 h-4 rounded border flex items-center justify-center transition-colors",
-            isSelected ? "bg-[#C48BFF] border-[#C48BFF]" : 
-            isPartiallySelected ? "bg-[#C48BFF]/50 border-[#C48BFF]" : "border-zinc-500 group-hover:border-zinc-300"
-          )}>
-            {isSelected && <svg className="w-3 h-3 text-[#2B253C]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-            {!isSelected && isPartiallySelected && <div className="w-2 h-0.5 bg-[#2B253C] rounded-full" />}
+          <div style={{
+            width: '18px',
+            height: '18px',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            cursor: 'pointer',
+            background: isSelected 
+              ? 'var(--accent-secondary)' 
+              : isPartiallySelected 
+                ? 'rgba(168, 85, 247, 0.4)' 
+                : 'var(--bg-base)',
+            boxShadow: isSelected || isPartiallySelected 
+              ? '0 0 8px rgba(168, 85, 247, 0.3)' 
+              : 'var(--neo-inset-sm)',
+          }}>
+            {isSelected && (
+              <svg 
+                width="12" height="12" viewBox="0 0 24 24" fill="none" 
+                stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                style={{ animation: 'check-pop 0.3s var(--ease-bounce)' }}
+              >
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+            {!isSelected && isPartiallySelected && (
+              <div style={{
+                width: '10px',
+                height: '2px',
+                background: 'white',
+                borderRadius: '2px',
+              }} />
+            )}
           </div>
         </div>
 
-        {/* File/Folder Icon */}
-        <div className="mr-2 text-zinc-400">
+        {/* File/Folder icon */}
+        <div style={{ marginRight: '8px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           {node.type === 'tree' ? (
-            shouldExpand ? <FolderOpen size={16} className="text-[#60A5FA]" /> : <Folder size={16} className="text-[#60A5FA]" />
+            shouldExpand 
+              ? <FolderOpen size={16} style={{ color: '#60a5fa' }} /> 
+              : <Folder size={16} style={{ color: '#60a5fa' }} />
           ) : (
-            <File size={16} />
+            getFileIcon(node.name)
           )}
         </div>
 
-        {/* Name */}
-        <span className={cn(
-          "text-sm truncate",
-          isSelected ? "text-[#D4A8FF] font-bold" : "text-zinc-200 font-medium"
-        )}>
+        {/* File name */}
+        <span style={{
+          fontSize: '13.5px',
+          fontFamily: 'var(--font-body)',
+          fontWeight: isSelected ? 700 : 500,
+          color: isSelected ? 'var(--accent-secondary)' : 'var(--text-primary)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          transition: 'color 0.2s ease',
+        }}>
           {node.name}
         </span>
+
+        {/* File size */}
+        {node.type === 'blob' && node.size !== undefined && (
+          <span style={{
+            marginLeft: 'auto',
+            paddingLeft: '12px',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            fontFamily: 'var(--font-body)',
+            flexShrink: 0,
+          }}>
+            {formatSize(node.size)}
+          </span>
+        )}
       </div>
 
-      {/* Children */}
+      {/* Children with smooth expand */}
       {node.type === 'tree' && shouldExpand && (
-        <div>
-          {node.children.map(childPath => (
-            <TreeNodeItem key={childPath} node={nodesMap[childPath]} />
+        <div style={{
+          overflow: 'hidden',
+          animation: 'fade-in 0.2s ease',
+        }}>
+          {node.children.map((childPath, childIndex) => (
+            <TreeNodeItem key={childPath} node={nodesMap[childPath]} index={childIndex} />
           ))}
         </div>
       )}
@@ -117,64 +262,142 @@ const TreeNodeItem: React.FC<{ node: TreeNode }> = ({ node }) => {
   );
 };
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export const TreeBrowser: React.FC = () => {
-  const { rootNodes, nodesMap, isLoadingTree, error, repoInfo } = useStore();
+  const { rootNodes, nodesMap, isLoadingTree, error, repoInfo, isTruncated } = useStore();
 
   React.useEffect(() => {
     if (!isLoadingTree && repoInfo?.path) {
-      // Small delay to ensure rendering is complete
       setTimeout(() => {
         const safeId = `node-${btoa(encodeURIComponent(repoInfo.path)).replace(/=/g, '')}`;
         const element = document.getElementById(safeId);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          
-          // Optional: Add a brief highlight effect to the selected item
-          const innerDiv = element.firstElementChild as HTMLElement;
-          if (innerDiv) {
-            const originalBg = innerDiv.style.backgroundColor;
-            innerDiv.style.backgroundColor = 'rgba(196, 139, 255, 0.3)'; // Highlight color
-            setTimeout(() => {
-              innerDiv.style.backgroundColor = originalBg;
-            }, 1500);
-          }
         }
-      }, 100);
+      }, 150);
     }
   }, [isLoadingTree, repoInfo?.path]);
 
   if (isLoadingTree) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-zinc-400">
-        <div className="w-8 h-8 border-2 border-[#C48BFF] border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-medium">Loading repository structure...</p>
-      </div>
-    );
+    return <SkeletonTree />;
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-red-400 bg-red-500/10 rounded-xl border border-red-500/20 p-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)]">
-        <p className="font-bold mb-2">Failed to load repository</p>
-        <p className="text-sm opacity-80">{error}</p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '300px',
+        background: 'var(--bg-surface)',
+        borderRadius: '20px',
+        boxShadow: 'var(--neo-raised)',
+        padding: '32px',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>😵</div>
+        <p style={{
+          fontFamily: 'var(--font-heading)',
+          fontWeight: 700,
+          fontSize: '18px',
+          color: 'var(--error)',
+          marginBottom: '8px',
+        }}>
+          Failed to load repository
+        </p>
+        <p style={{
+          fontSize: '14px',
+          color: 'var(--text-secondary)',
+          maxWidth: '400px',
+        }}>
+          {error}
+        </p>
       </div>
     );
   }
 
   if (rootNodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-zinc-400 bg-[#423657] border border-black/20 rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-        <p className="font-medium">No files found in this repository.</p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '300px',
+        background: 'var(--bg-surface)',
+        borderRadius: '20px',
+        boxShadow: 'var(--neo-raised)',
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
+        <p style={{
+          fontFamily: 'var(--font-heading)',
+          fontWeight: 700,
+          color: 'var(--text-secondary)',
+        }}>
+          No files found in this repository.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#423657] border border-black/20 rounded-xl overflow-hidden flex flex-col h-[600px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <div className="overflow-y-auto overflow-x-auto p-3 flex-1 custom-scrollbar">
-        {rootNodes.map(path => (
-          <TreeNodeItem key={path} node={nodesMap[path]} />
-        ))}
+    <div>
+      {/* Truncation Warning Banner */}
+      {isTruncated && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '12px 16px',
+          marginBottom: '12px',
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.25)',
+          borderRadius: '14px',
+          boxShadow: 'var(--neo-flat)',
+          fontFamily: 'var(--font-body)',
+        }}>
+          <span style={{ fontSize: '18px' }}>⚠️</span>
+          <div>
+            <span style={{ fontWeight: 700, fontSize: '13px', color: '#f59e0b' }}>
+              Large Repository
+            </span>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginLeft: '6px' }}>
+              — This repository exceeds 100,000 entries. Some files may not be shown.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Tree container */}
+      <div
+        role="tree"
+        aria-label="Repository file tree"
+        style={{
+          background: 'var(--bg-surface)',
+          borderRadius: '20px',
+          boxShadow: 'var(--neo-raised)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '600px',
+        }}
+      >
+        <div className="custom-scrollbar" style={{
+          overflowY: 'auto',
+          overflowX: 'auto',
+          padding: '8px',
+          flex: 1,
+        }}>
+          {rootNodes.map((path, index) => (
+            <TreeNodeItem key={path} node={nodesMap[path]} index={index} />
+          ))}
+        </div>
       </div>
     </div>
   );

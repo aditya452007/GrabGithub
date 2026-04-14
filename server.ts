@@ -13,21 +13,38 @@ const treeCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 15 * 60 * 1000; // Increased to 15 minutes
 const MAX_CACHE_SIZE = 50; // Limit memory usage
 
-// Helper to fetch JSON from GitHub API
-async function fetchGitHubAPI(endpoint: string) {
+// Helper to build GitHub API headers
+function getGitHubHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
     'User-Agent': 'Grab-GitHub-App',
   };
-  
-  // Optional: Use a token if provided in env to increase rate limits
   if (process.env.GITHUB_TOKEN) {
     headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
   }
+  return headers;
+}
+
+// Helper to fetch JSON from GitHub API
+async function fetchGitHubAPI(endpoint: string) {
+  const headers = getGitHubHeaders();
 
   const response = await fetch(`https://api.github.com${endpoint}`, { headers });
   
   if (!response.ok) {
+    // Check for rate limiting specifically
+    const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
+    const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+    
+    if (response.status === 403 && rateLimitRemaining === '0') {
+      const resetDate = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000) : null;
+      const resetIn = resetDate ? Math.ceil((resetDate.getTime() - Date.now()) / 60000) : '?';
+      const tokenHint = process.env.GITHUB_TOKEN 
+        ? 'Your token\'s rate limit has been exceeded.' 
+        : 'Add a GITHUB_TOKEN to increase your limit from 60 to 5,000 requests/hour.';
+      throw new Error(`GitHub API rate limit exceeded. Resets in ~${resetIn} minutes. ${tokenHint}`);
+    }
+    
     const errorText = await response.text();
     let errorMessage = `GitHub API error (${response.status})`;
     try {
@@ -38,6 +55,11 @@ async function fetchGitHubAPI(endpoint: string) {
     } catch (e) {
       errorMessage = `${errorMessage}: ${errorText}`;
     }
+    
+    if (response.status === 404) {
+      throw new Error('Repository not found. It may be private or the URL may be misspelled.');
+    }
+    
     throw new Error(errorMessage);
   }
   
@@ -85,8 +107,35 @@ app.get('/api/repo-info', async (req, res) => {
     let subpath = '';
 
     if (parts.length >= 4 && (parts[2] === 'tree' || parts[2] === 'blob')) {
-      branch = decodeURIComponent(parts[3]);
-      subpath = parts.slice(4).map(decodeURIComponent).join('/');
+      // The remaining parts after 'tree'/'blob' could be branch/path.
+      // Branch names can contain slashes (e.g. 'feature/my-branch'),
+      // so we need to resolve which segments are branch vs path.
+      const remainingParts = parts.slice(3).map(decodeURIComponent);
+      
+      // Strategy: try progressively longer branch name candidates
+      // until the GitHub API confirms one exists.
+      let resolved = false;
+      for (let i = remainingParts.length; i >= 1; i--) {
+        const candidateBranch = remainingParts.slice(0, i).join('/');
+        const candidatePath = remainingParts.slice(i).join('/');
+        try {
+          // Verify the branch exists by fetching its ref
+          await fetchGitHubAPI(`/repos/${owner}/${repo}/branches/${encodeURIComponent(candidateBranch)}`);
+          branch = candidateBranch;
+          subpath = candidatePath;
+          resolved = true;
+          break;
+        } catch {
+          // Branch doesn't exist, try a shorter name
+          continue;
+        }
+      }
+      
+      if (!resolved) {
+        // Fallback: assume the first segment is the branch
+        branch = remainingParts[0];
+        subpath = remainingParts.slice(1).join('/');
+      }
     } else {
       // Fetch default branch
       const repoData = await fetchGitHubAPI(`/repos/${owner}/${repo}`);

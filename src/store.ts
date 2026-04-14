@@ -29,6 +29,8 @@ interface AppState {
   expandedPaths: Set<string>;
   
   searchQuery: string;
+  currentPath: string; // For breadcrumb navigation
+  isTruncated: boolean; // True if GitHub tree was truncated
   
   isLoadingInfo: boolean;
   isLoadingTree: boolean;
@@ -39,6 +41,7 @@ interface AppState {
   setError: (error: string | null) => void;
   fetchRepoInfo: (url: string) => Promise<void>;
   fetchTree: (info: RepoInfo) => Promise<void>;
+  navigateToPath: (path: string) => void;
   
   toggleSelection: (path: string) => void;
   toggleExpand: (path: string) => void;
@@ -46,6 +49,8 @@ interface AppState {
   collapseAll: () => void;
   selectAll: () => void;
   clearSelection: () => void;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -60,17 +65,37 @@ export const useStore = create<AppState>((set, get) => ({
   expandedPaths: new Set(),
   
   searchQuery: '',
+  currentPath: '',
+  isTruncated: false,
   
+  isDarkMode: typeof window !== 'undefined' 
+    ? localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    : false,
+
   isLoadingInfo: false,
   isLoadingTree: false,
   error: null,
   
+  toggleDarkMode: () => set((state) => {
+    const newMode = !state.isDarkMode;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', newMode ? 'dark' : 'light');
+    }
+    return { isDarkMode: newMode };
+  }),
+
   setUrl: (url) => set({ url }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setError: (error) => set({ error }),
   
   fetchRepoInfo: async (url) => {
-    set({ isLoadingInfo: true, error: null, repoInfo: null, tree: [], nodesMap: {}, rootNodes: [], selectedPaths: new Set(), partiallySelectedPaths: new Set(), expandedPaths: new Set() });
+    set({ isLoadingInfo: true, error: null, repoInfo: null, tree: [], nodesMap: {}, rootNodes: [], selectedPaths: new Set(), partiallySelectedPaths: new Set(), expandedPaths: new Set(), currentPath: '', isTruncated: false });
+    
+    if (!url || !url.trim()) {
+      set({ isLoadingInfo: false });
+      return;
+    }
+
     try {
       const res = await fetch(`/api/repo-info?url=${encodeURIComponent(url)}`);
       if (!res.ok) {
@@ -97,9 +122,7 @@ export const useStore = create<AppState>((set, get) => ({
       }
       const data = await res.json();
       
-      if (data.truncated) {
-        console.warn('Tree is truncated. Some files may be missing.');
-      }
+      const isTruncated = !!data.truncated;
       
       // Normalize tree
       const nodesMap: Record<string, TreeNode> = {};
@@ -185,7 +208,9 @@ export const useStore = create<AppState>((set, get) => ({
         nodesMap, 
         rootNodes, 
         isLoadingTree: false,
-        expandedPaths
+        expandedPaths,
+        isTruncated,
+        currentPath: info.path || ''
       });
       
     } catch (err: any) {
@@ -216,6 +241,33 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   collapseAll: () => set({ expandedPaths: new Set() }),
+  
+  navigateToPath: (path: string) => {
+    set(state => {
+      const newExpanded = new Set<string>();
+      
+      if (path) {
+        // Expand all ancestors
+        const parts = path.split('/');
+        let current = '';
+        for (const part of parts) {
+          current = current ? `${current}/${part}` : part;
+          if (state.nodesMap[current]?.type === 'tree') {
+            newExpanded.add(current);
+          }
+        }
+      } else {
+        // Root: expand top-level folders
+        state.rootNodes.forEach(p => {
+          if (state.nodesMap[p]?.type === 'tree') {
+            newExpanded.add(p);
+          }
+        });
+      }
+      
+      return { expandedPaths: newExpanded, currentPath: path };
+    });
+  },
   
   selectAll: () => {
     set(state => {

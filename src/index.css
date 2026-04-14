@@ -1,6 +1,239 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════
+   GrabGitHub — Playful Neumorphic Design System
+   ═══════════════════════════════════════════════════ */
+
+/* Google Fonts are loaded in index.html */
+
+@layer base {
+  :root {
+    /* Flat Design Light Palette */
+    --bg-base: #fafafa;
+    --bg-surface: #ffffff;
+    --bg-surface-alt: #f1f1f1;
+    --shadow-light: #ffffff;
+    --shadow-dark: #000000;
+    --accent-primary: #a855f7; /* Vibrant Purple */
+    --accent-secondary: #0ea5e9; /* Cyan Blue */
+    --accent-glow: rgba(168, 85, 247, 0.2);
+    --accent-secondary-glow: rgba(14, 165, 233, 0.2);
+    --text-primary: #111827; 
+    --text-secondary: #374151; 
+    --text-muted: #6b7280; 
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.05);
+
+    /* Flat Neumorphism Shadows (Light Theme) */
+    --neo-raised: 4px 4px 0px var(--shadow-dark);
+    --neo-raised-sm: 2px 2px 0px var(--shadow-dark);
+    --neo-inset: inset 2px 2px 4px rgba(0,0,0,0.1);
+    --neo-inset-sm: inset 1px 1px 2px rgba(0,0,0,0.1);
+    --neo-flat: 1px 1px 0px var(--shadow-dark);
+
+    /* Typography */
+    --font-heading: 'Inter', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+
+    /* Motion */
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.15s var(--ease-smooth);
+    --transition-smooth: 0.25s var(--ease-smooth);
+  }
+
+  .dark {
+    /* Flat Design Dark Palette (GitDiagram aesthetic) */
+    --bg-base: #1e1b2e; /* Deep Slate Purple */
+    --bg-surface: #2d2a40; /* Slightly lighter glass/surface */
+    --bg-surface-alt: #363250; 
+    --shadow-light: rgba(255, 255, 255, 0.05); /* Very subtle top highlight */
+    --shadow-dark: #0d0a1b; /* Very dark shadow for flat depth */
+    --accent-primary: #c084fc; /* Vibrant Light Purple */
+    --accent-secondary: #60a5fa; /* Soft Light Blue */
+    --accent-glow: rgba(192, 132, 252, 0.4);
+    --accent-secondary-glow: rgba(96, 165, 250, 0.4);
+    --text-primary: #ffffff; 
+    --text-secondary: #e2e8f0; 
+    --text-muted: #94a3b8; 
+    --success: #34d399; 
+    --warning: #fbbf24;
+    --error: #fb7185;
+    
+    --glass-bg: rgba(30, 27, 46, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.05);
+    
+    /* Flat Neumorphism Shadows (Dark Theme) */
+    --neo-raised: 4px 4px 0px var(--shadow-dark);
+    --neo-raised-sm: 2px 2px 0px var(--shadow-dark);
+    --neo-inset: inset 2px 2px 4px rgba(0,0,0,0.4);
+    --neo-inset-sm: inset 1px 1px 2px rgba(0,0,0,0.4);
+    --neo-flat: 2px 2px 0px var(--shadow-dark);
+    
+    /* Typography */
+    --font-heading: 'Inter', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-base);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   Animations
+   ═══════════════════════════════════════════════════ */
 @layer utilities {
+  /* Floating sparkle animation */
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-10px) rotate(5deg); }
+    66% { transform: translateY(5px) rotate(-3deg); }
+  }
+
+  @keyframes float-reverse {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(8px) rotate(-5deg); }
+    66% { transform: translateY(-6px) rotate(3deg); }
+  }
+
+  /* Gradient shimmer on text */
+  @keyframes shimmer-text {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  /* Skeleton pulse */
+  @keyframes skeleton-pulse {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Toast slide in */
+  @keyframes toast-in {
+    from { transform: translateX(100%) translateY(-10px); opacity: 0; }
+    to { transform: translateX(0) translateY(0); opacity: 1; }
+  }
+
+  @keyframes toast-out {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+  }
+
+  /* Checkbox pop */
+  @keyframes check-pop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+
+  /* Subtle breathing glow */
+  @keyframes breathing-glow {
+    0%, 100% { box-shadow: var(--neo-raised), 0 0 0 0 transparent; }
+    50% { box-shadow: var(--neo-raised), 0 0 20px var(--accent-glow); }
+  }
+
+  /* Gradient sweep on button hover */
+  @keyframes gradient-sweep {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  /* CSS particle background */
+  @keyframes particle-drift {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 0.3; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+  }
+
+  /* Progress bar countdown */
+  @keyframes countdown {
+    from { width: 100%; }
+    to { width: 0%; }
+  }
+
+  /* Fade in */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Sparkle class */
+  .animate-float {
+    animation: float 5s ease-in-out infinite;
+  }
+
+  .animate-float-reverse {
+    animation: float-reverse 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  /* Shimmer text */
+  .shimmer-text {
+    background: linear-gradient(
+      90deg,
+      var(--text-primary) 0%,
+      var(--accent-secondary) 25%,
+      var(--accent-primary) 50%,
+      var(--accent-secondary) 75%,
+      var(--text-primary) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer-text 4s linear infinite;
+  }
+
+  /* Skeleton */
+  .skeleton-row {
+    background: linear-gradient(
+      90deg,
+      var(--bg-surface) 25%,
+      var(--bg-surface-alt) 50%,
+      var(--bg-surface) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    border-radius: 12px;
+  }
+
+  /* Toast */
+  .toast-enter {
+    animation: toast-in 0.4s var(--ease-bounce) forwards;
+  }
+
+  .toast-exit {
+    animation: toast-out 0.3s ease-in forwards;
+  }
+
+  /* Custom scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -9,10 +242,51 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.15);
     border-radius: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.25);
+  }
+
+  /* Neumorphic utility classes */
+  .neo-raised {
+    box-shadow: var(--neo-raised);
+  }
+
+  .neo-raised-sm {
+    box-shadow: var(--neo-raised-sm);
+  }
+
+  .neo-inset {
+    box-shadow: var(--neo-inset);
+  }
+
+  .neo-inset-sm {
+    box-shadow: var(--neo-inset-sm);
+  }
+
+  .neo-flat {
+    box-shadow: var(--neo-flat);
+  }
+
+  /* Particles background */
+  .particles::before,
+  .particles::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--accent-secondary);
+    opacity: 0.2;
+    animation: particle-drift 12s linear infinite;
+  }
+
+  .particles::after {
+    left: 60%;
+    animation-delay: 4s;
+    animation-duration: 16s;
+    background: var(--accent-primary);
   }
 }
