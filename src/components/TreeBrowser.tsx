@@ -65,7 +65,7 @@ const TreeNodeItem: React.FC<{ node: TreeNode; index: number }> = ({ node, index
     return false;
   }, [node, searchQuery, nodesMap]);
 
-  const shouldExpand = isExpanded || (searchQuery && node.type === 'tree');
+  const shouldExpand = isExpanded || (!!searchQuery && node.type === 'tree');
   const safeId = `node-${btoa(encodeURIComponent(node.path)).replace(/=/g, '')}`;
 
   const handleRowClick = useCallback(() => {
@@ -253,7 +253,7 @@ const TreeNodeItem: React.FC<{ node: TreeNode; index: number }> = ({ node, index
           overflow: 'hidden',
           animation: 'fade-in 0.2s ease',
         }}>
-          {node.children.map((childPath, childIndex) => (
+          {node.children.map((childPath: string, childIndex: number) => (
             <TreeNodeItem key={childPath} node={nodesMap[childPath]} index={childIndex} />
           ))}
         </div>

@@ -237,7 +237,7 @@ app.post('/api/download', async (req, res) => {
       activeRequests++;
 
       try {
-        const encodedPath = path.split('/').map(p => encodeURIComponent(p)).join('/');
+        const encodedPath = path.split('/').map((p: string) => encodeURIComponent(p)).join('/');
         const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodedPath}`;
         const response = await fetch(rawUrl);
         
