@@ -1,5 +1,4 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import archiver from 'archiver';
 
@@ -281,25 +280,37 @@ app.post('/api/download', async (req, res) => {
   }
 });
 
-async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production') {
+  // Dynamically import vite only in development so production doesn't require rollup
+  (async () => {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
-    // In production, serve static files from dist
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Development server running on http://localhost:${PORT}`);
+    });
+  })();
+} else {
+  // In production, serve static files from dist
+  const distPath = path.join(process.cwd(), 'dist');
+  app.use(express.static(distPath));
+  
+  // Use app.use() as a catch-all instead of app.get('*') to fix Express 5 pathToRegexp errors
+  app.use((req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+
+  // Only bind to a specific port if we're not running as a Vercel Serverless Function
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Production server running on http://localhost:${PORT}`);
     });
   }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
 }
 
-startServer();
+// Export the Express app as default export for Vercel Serverless Functions
+export default app;
