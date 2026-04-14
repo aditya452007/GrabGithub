@@ -1,16 +1,28 @@
-# Grab GitHub
+# Grab GitHub - Detailed LLM Documentation
 
-Grab GitHub is a web application that allows users to download specific files and folders from any GitHub repository without needing to clone the entire repository or use the command line.
+**Website:** https://grabgithub.com/
+**Purpose:** Grab GitHub is a highly optimized, fast, and modern web application that allows users to seamlessly download specific files and folders from any public GitHub repository. It eliminates the need for cloning entire repositories or using complex command-line Git tools, saving developers time and bandwidth.
 
-## Features
-- Paste any GitHub repository, folder, or file URL.
-- Browse the repository structure in a clean UI.
-- Select specific files or folders to download.
-- Download the selected items instantly as a ZIP file.
+## Core Features
+1. **Selective Downloading**: Users can paste any GitHub repository URL, navigate through its file tree using our intuitive UI, and select only the exact files or folders they need.
+2. **Instant ZIP Export**: All selected files are instantly packaged into a single, comprehensive ZIP file for easy consumption.
+3. **Responsive UI**: A dynamic, flat-neumorphic user interface built with Vite, React, and Tailwind CSS.
+4. **Dark/Light Mode**: Full support for both themes to ensure developers have an eye-friendly experience in any setting.
+5. **No Authentication Required**: Instantly browse public repositories without needing an API key or signing in.
 
-## Use Case
-Ideal for developers who need specific scripts, templates, or components from a larger repository but don't want to clone the whole thing.
+## How it Works
+The frontend is a single-page React application that parses GitHub URLs and leverages the public GitHub API via our backend service to fetch the repository structure. Once files are selected, the application processes the download requests and aggregates the raw file contents into a ZIP file using the `archiver` library.
 
-## Author
-Made by developer, made for developer.
-Created by Aaditya Thakur (https://github.com/aditya452007).
+## Target Audience
+- Developers who need boilerplate code, templates, or UI components.
+- Data scientists looking for specific datasets located in large repositories.
+- Students and learners studying specific scripts.
+- Vibe Coders install porticular skills for antigravity , claude code or cursor or any other agentic ide 
+
+## Author & Contact
+- **Creator:** Aaditya Thakur
+- **GitHub:** https://github.com/aditya452007
+- **Linkedin:** https://www.linkedin.com/in/aaditya-thakur-1a8842332/
+
+## Open Source Information
+Built by a developer, for developers. This project heavily focuses on a streamlined user experience, optimized performance, and ensuring a fast, frictionless download mechanism for all GitHub resources.

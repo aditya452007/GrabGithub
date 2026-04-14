@@ -1,4 +1,12 @@
-User-agent: *
-Allow: /
+# robots.txt for GrabGitHub
+# https://grabgithub.com
 
-Sitemap: /sitemap.xml
+User-Agent: *
+Allow: /
+Disallow: /api/
+
+# Host
+Host: https://grabgithub.com
+
+# Sitemaps
+Sitemap: https://grabgithub.com/sitemap.xml

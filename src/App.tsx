@@ -4,7 +4,7 @@ import { TreeBrowser } from './components/TreeBrowser';
 import { DownloadPanel } from './components/DownloadPanel';
 import { ToastContainer, showToast } from './components/Toast';
 import { Breadcrumb } from './components/Breadcrumb';
-import { Github, Search, X, CheckSquare, Square, ChevronDown, ChevronUp, RotateCcw, Moon, Sun, Wand2, Sparkles, Rocket } from 'lucide-react';
+import { Search, X, CheckSquare, Square, ChevronDown, ChevronUp, RotateCcw, Moon, Sun, Wand2, Sparkles, Rocket } from 'lucide-react';
 
 /* ──────────────────────────────────────────
    Decorative Sparkle SVG
@@ -12,6 +12,12 @@ import { Github, Search, X, CheckSquare, Square, ChevronDown, ChevronUp, RotateC
 const Sparkle = ({ className, color, style }: { className?: string; color?: string; style?: React.CSSProperties }) => (
   <svg className={className} style={style} viewBox="0 0 24 24" fill={color || 'none'} stroke={color || 'currentColor'} strokeWidth="1.5" aria-hidden="true">
     <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" strokeLinejoin="round" />
+  </svg>
+);
+
+const GithubIcon = ({ size = 24, style, className }: { size?: number, style?: React.CSSProperties, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.24c3-.34 6-1.53 6-6.76a5.5 5.5 0 0 0-1.5-3.89C18.8 3.5 18 1.5 18 1.5s-1.5-.5-4 2A13.8 13.8 0 0 0 12 3c-1.5 0-3 .2-4 .5-2.5-2.5-4-2-4-2S3.5 3.5 3.8 4.1a5.5 5.5 0 0 0-1.5 3.89c0 5.23 3 6.42 6 6.76a4.8 4.8 0 0 0-1 3.24v4" />
   </svg>
 );
 
@@ -241,7 +247,7 @@ export default function App() {
               gap: '6px',
             }}
           >
-            <Github size={18} />
+            <GithubIcon size={18} />
             <span className="hidden sm:inline" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               GitHub <span style={{ color: 'var(--warning)', fontSize: '12px' }}>★</span>
             </span>
@@ -633,7 +639,7 @@ export default function App() {
                 boxShadow: 'var(--neo-flat)',
                 fontFamily: 'var(--font-body)',
               }}>
-                <Github size={16} style={{ color: 'var(--accent-primary)' }} />
+                <GithubIcon size={16} style={{ color: 'var(--accent-primary)' }} />
                 <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '14px' }}>
                   {repoInfo.owner}
                 </span>
