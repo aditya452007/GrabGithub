@@ -1,0 +1,72 @@
+{
+  "$schema": "https://agentskills.io/schema/v0.2.0/index.schema.json",
+  "name": "GrabGitHub Agent Skills",
+  "description": "Agent discovery index for GrabGitHub — browse and download GitHub repository files without cloning.",
+  "url": "https://grab-github.vercel.app/.well-known/agent-skills/index.json",
+  "skills": [
+    {
+      "name": "get_repo_info",
+      "type": "api",
+      "description": "Parse a GitHub URL or owner/repo shorthand into structured repo metadata (owner, repo name, branch, subpath).",
+      "url": "https://grab-github.vercel.app/api/repo-info",
+      "method": "GET",
+      "parameters": {
+        "url": {
+          "type": "string",
+          "description": "A full GitHub URL or owner/repo shorthand.",
+          "required": true
+        }
+      },
+      "returns": {
+        "type": "object",
+        "properties": {
+          "owner": { "type": "string" },
+          "repo":  { "type": "string" },
+          "branch": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      },
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "get_file_tree",
+      "type": "api",
+      "description": "Fetch the complete recursive file and folder tree for a GitHub repository branch.",
+      "url": "https://grab-github.vercel.app/api/tree",
+      "method": "GET",
+      "parameters": {
+        "owner":  { "type": "string", "required": true },
+        "repo":   { "type": "string", "required": true },
+        "branch": { "type": "string", "required": true }
+      },
+      "returns": {
+        "type": "object",
+        "description": "GitHub git-tree response with a flat list of all tree nodes."
+      },
+      "sha256": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+    },
+    {
+      "name": "download_files",
+      "type": "api",
+      "description": "Download a selection of file paths from a GitHub repository as a ZIP archive.",
+      "url": "https://grab-github.vercel.app/api/download",
+      "method": "POST",
+      "parameters": {
+        "owner":  { "type": "string", "required": true },
+        "repo":   { "type": "string", "required": true },
+        "branch": { "type": "string", "required": true },
+        "paths":  { "type": "array", "items": { "type": "string" }, "required": true }
+      },
+      "returns": {
+        "type": "binary",
+        "contentType": "application/zip"
+      },
+      "sha256": "b94f6f125c79e3a5ffaa826f584c10d52ada669e6762051b826b55776d05a8a7"
+    }
+  ],
+  "discovery": {
+    "api-catalog": "https://grab-github.vercel.app/.well-known/api-catalog",
+    "mcp-server-card": "https://grab-github.vercel.app/.well-known/mcp/server-card.json",
+    "oauth-protected-resource": "https://grab-github.vercel.app/.well-known/oauth-protected-resource"
+  }
+}

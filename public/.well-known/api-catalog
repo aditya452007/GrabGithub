@@ -1,0 +1,75 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://grab-github.vercel.app/api/repo-info",
+      "service-desc": [
+        {
+          "href": "https://grab-github.vercel.app/.well-known/api-catalog",
+          "type": "application/linkset+json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://grab-github.vercel.app/.well-known/agent-skills/index.json",
+          "type": "application/json"
+        }
+      ],
+      "type": [
+        {
+          "href": "https://grab-github.vercel.app/api/repo-info"
+        }
+      ],
+      "describedby": [
+        {
+          "href": "https://grab-github.vercel.app/api/repo-info",
+          "title": "Parse a GitHub URL into owner, repo, branch, and subpath",
+          "type": "application/json"
+        }
+      ]
+    },
+    {
+      "anchor": "https://grab-github.vercel.app/api/tree",
+      "service-desc": [
+        {
+          "href": "https://grab-github.vercel.app/.well-known/api-catalog",
+          "type": "application/linkset+json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://grab-github.vercel.app/.well-known/agent-skills/index.json",
+          "type": "application/json"
+        }
+      ],
+      "describedby": [
+        {
+          "href": "https://grab-github.vercel.app/api/tree",
+          "title": "Fetch a repository's full recursive file tree",
+          "type": "application/json"
+        }
+      ]
+    },
+    {
+      "anchor": "https://grab-github.vercel.app/api/download",
+      "service-desc": [
+        {
+          "href": "https://grab-github.vercel.app/.well-known/api-catalog",
+          "type": "application/linkset+json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://grab-github.vercel.app/.well-known/agent-skills/index.json",
+          "type": "application/json"
+        }
+      ],
+      "describedby": [
+        {
+          "href": "https://grab-github.vercel.app/api/download",
+          "title": "Download selected file paths as a ZIP archive",
+          "type": "application/json"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "serverInfo": {
+    "name": "GrabGitHub MCP Server",
+    "version": "1.0.0",
+    "description": "Browse and download files from any public GitHub repository without cloning."
+  },
+  "transport": {
+    "type": "http",
+    "endpoint": "https://grab-github.vercel.app/api"
+  },
+  "capabilities": {
+    "tools": [
+      {
+        "name": "get_repo_info",
+        "description": "Parse a GitHub URL into its owner, repo, branch and subpath components.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "A GitHub repository URL or owner/repo shorthand."
+            }
+          },
+          "required": ["url"]
+        },
+        "endpoint": "GET /api/repo-info?url={url}"
+      },
+      {
+        "name": "get_file_tree",
+        "description": "Fetch the complete recursive file tree for a GitHub repository branch.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "owner": { "type": "string", "description": "GitHub username or org name." },
+            "repo":  { "type": "string", "description": "Repository name." },
+            "branch": { "type": "string", "description": "Branch name." }
+          },
+          "required": ["owner", "repo", "branch"]
+        },
+        "endpoint": "GET /api/tree?owner={owner}&repo={repo}&branch={branch}"
+      },
+      {
+        "name": "download_files",
+        "description": "Download a selection of file paths from a GitHub repository as a ZIP archive.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "owner":  { "type": "string" },
+            "repo":   { "type": "string" },
+            "branch": { "type": "string" },
+            "paths": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List of file paths relative to the repo root to include in the ZIP."
+            }
+          },
+          "required": ["owner", "repo", "branch", "paths"]
+        },
+        "endpoint": "POST /api/download"
+      }
+    ]
+  },
+  "x-schema": "https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127"
+}

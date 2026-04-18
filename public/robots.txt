@@ -5,5 +5,8 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
+# AI/Agent content usage preferences (contentsignals.org)
+Content-Signal: ai-train=no, search=yes, ai-input=yes
+
 # Sitemaps
 Sitemap: https://grab-github.vercel.app/sitemap.xml

@@ -1,0 +1,16 @@
+{
+  "issuer": "https://grab-github.vercel.app",
+  "authorization_endpoint": "https://github.com/login/oauth/authorize",
+  "token_endpoint": "https://github.com/login/oauth/access_token",
+  "userinfo_endpoint": "https://api.github.com/user",
+  "jwks_uri": "https://grab-github.vercel.app/.well-known/jwks.json",
+  "response_types_supported": ["code"],
+  "subject_types_supported": ["public"],
+  "id_token_signing_alg_values_supported": ["RS256"],
+  "grant_types_supported": ["authorization_code"],
+  "scopes_supported": ["openid", "profile", "email"],
+  "claims_supported": ["sub", "name", "email", "picture"],
+  "service_documentation": "https://grab-github.vercel.app/.well-known/agent-skills/index.json",
+  "op_policy_uri": "https://grab-github.vercel.app",
+  "op_tos_uri": "https://grab-github.vercel.app"
+}

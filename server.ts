@@ -7,6 +7,63 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// ── RFC 8288 Link Response Headers ───────────────────────────────────────────
+// Advertise API catalog and agent-skills index to AI agents on every response.
+app.use((_req, res, next) => {
+  res.setHeader(
+    'Link',
+    [
+      '</.well-known/api-catalog>; rel="api-catalog"',
+      '</.well-known/agent-skills/index.json>; rel="service-doc"',
+      '</docs/api>; rel="service-doc"',
+    ].join(', ')
+  );
+  next();
+});
+
+// ── Markdown Content Negotiation ─────────────────────────────────────────────
+// When clients send  Accept: text/markdown  return a Markdown description of
+// the app instead of the HTML SPA (RFC-7231 proactive negotiation).
+app.get('/', (req, res, next) => {
+  const accept = req.headers['accept'] ?? '';
+  if (!accept.includes('text/markdown')) return next();
+
+  const markdown = `# GrabGitHub
+
+> Browse and download any file or folder from a GitHub repository — no cloning required.
+
+## What it does
+
+GrabGitHub lets you explore a GitHub repository's file tree and download only the
+files or folders you need as a ZIP archive.
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/repo-info?url=\<github-url\> | Parse a GitHub URL into owner/repo/branch/path |
+| GET | /api/tree?owner=&repo=&branch= | Fetch the full recursive file tree |
+| POST | /api/download | Download selected paths as a ZIP |
+
+## Agent Discovery
+
+- API Catalog: \`/.well-known/api-catalog\`
+- MCP Server Card: \`/.well-known/mcp/server-card.json\`
+- Agent Skills: \`/.well-known/agent-skills/index.json\`
+- OAuth Metadata: \`/.well-known/oauth-protected-resource\`
+
+## Source
+
+<https://github.com/aditya452007/GrabGithub>
+`;
+
+  res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+  // x-markdown-tokens: approximate token count for the response body
+  const tokenEstimate = Math.ceil(markdown.length / 4);
+  res.setHeader('x-markdown-tokens', String(tokenEstimate));
+  res.send(markdown);
+});
+
 // Simple in-memory cache for trees
 const treeCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 15 * 60 * 1000; // Increased to 15 minutes
